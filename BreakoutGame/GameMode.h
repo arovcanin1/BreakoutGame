@@ -5,7 +5,7 @@
 #include <vector>
 #include "SDL_ttf.h"
 #include <string>
-
+//
 union Vector2D
 {
     struct { float x, y; };
