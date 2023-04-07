@@ -624,7 +624,7 @@ void GameMode::RenderTexture(float x, float y, float w, float h, std::string Tex
 	DirectX::ScratchImage ResizedImage;
 	if (DirectX::Resize(ScratchImage.GetImages(), ScratchImage.GetImageCount(), ScratchImage.GetMetadata(), size_t(w), size_t(h), DirectX::TEX_FILTER_DEFAULT, ResizedImage) != S_OK) {}
 
-	SDL_Surface* sdlSurface = SDL_CreateRGBSurfaceFrom(ResizedImage.GetPixels(), (ResizedImage.GetMetadata().width), (ResizedImage.GetMetadata().height), (32), (ResizedImage.GetMetadata().width * 4), 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+	SDL_Surface* sdlSurface = SDL_CreateRGBSurfaceFrom(ResizedImage.GetPixels(), static_cast<int>(ResizedImage.GetMetadata().width), static_cast<int>(ResizedImage.GetMetadata().height), static_cast<int>(32), static_cast<int>(ResizedImage.GetMetadata().width * 4), 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 	SDL_Texture* sdlTexture = SDL_CreateTextureFromSurface(GameRenderer, sdlSurface);
 
 	SDL_Rect dest = { (int)x, (int)y, (int)w, (int)h };
