@@ -3,17 +3,20 @@
 #include <codecvt>
 #include "SDL_mixer.h"
 #include "DirectXTex.h"
-#include "SDL_image.h"
 #include "SDL_ttf.h"
-#include "tinyxml2.h"
 #include <sstream>
 #include <string>
 #include <stdlib.h>
 
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#pragma warning(push)
+#pragma warning(disable: 26812) // Prefer enum class over enum  
+#include "tinyxml2.h"
+#pragma warning(pop)
 
 using namespace tinyxml2;
 
-
+/* Operators for easy vector addition, vector substraction etc. */
 Vector2D operator+(Vector2D a, Vector2D b)
 {
 	return { a.x + b.x, a.y + b.y };
@@ -55,7 +58,6 @@ Vector2D normalize(Vector2D vector)
 const Vector2D PaddleSize = { 0.1f, 0.025f };
 const Vector2D CubeSize = { 0.015f, 0.02f };
 const Vector2D WorldSize = { 1.0f, 5.0f / 4.0f };
-const Vector2D TextSize = { 0.225f, 0.03 };
 const float PaddleY = 0.9f * WorldSize.y;
 const float Border = 0.05f;
 const float PaddleCornerWidth = PaddleSize.x * 0.1f;
@@ -72,7 +74,6 @@ GameMode::GameMode(int WindowWidth, int WindowHeight) :
 	RowCount(0),
 	RowSpacing(0),
 	Seconds(0),
-	counter(0),
 	MaxScore(0)
 {
 	Init();
@@ -124,7 +125,6 @@ void GameMode::Init()
 
 void GameMode::SetBricks()
 {
-
 	/* Removes all the bricks from BricksInGame vector. Reduces capacity of the vector to fit its size. */
 	BricksInGame.clear();
 	BricksInGame.shrink_to_fit();
@@ -199,6 +199,7 @@ void GameMode::SetBricks()
 
 void GameMode::NextLevel()
 {
+	bShouldPause = true;
 	CurrentScore = 0;
 	UploadLevel(Levels.at(LevelCounter));
 	ResetLevel();
@@ -206,17 +207,18 @@ void GameMode::NextLevel()
 
 void GameMode::ResetLevel()
 {
+	/* Resets positions of all Game objects */
 	Paddle = { 0.5f, PaddleY };
 	Cube = { 0.5f, PaddleY - PaddleSize.y };
 	SetBricks();
-	if (!bShouldPause) Direction = normalize({ 0, -1 });
+	if (!bShouldPause) CubeDirection = normalize({ 0, -1 });
 }
 
 void GameMode::ResetGame()
 {
 	TimeForTime = SDL_GetTicks();
 	BeforeTimeForTime = SDL_GetTicks();
-	lifeCount = 1;
+	LifeCount = 4;
 	LevelCounter = 0;
 	Score = 0;
 	CurrentScore = 0;
@@ -232,6 +234,7 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 	Paddle.x = MouseX / WindowWidth;
 	Paddle.y = PaddleY;
 
+	/* Paddle and Wall collision */
 	if (Paddle.x - PaddleSize.x * 0.5f < Border)
 	{
 		Paddle.x = PaddleSize.x * 0.5f + Border;
@@ -242,196 +245,190 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 		Paddle.x = 1 - Border - PaddleSize.x * 0.5f;
 	}
 
-	float allowedTimeStep = Time;
-	int HitBrickIndex = -1;
-	bool didCollide = false;
-	Vector2D newCubeDirection = Direction;
+	float TimeAllowed = Time;
+	int HitIndex = -1;
+	bool bCollisionDetected = false;
+	Vector2D ChangeDirection = CubeDirection;
+	std::string WallSoundPath = "Assets/Sounds/HitWall.wav";
+	std::string PaddleSoundPath = "Assets/Sounds/HitPaddle.wav";
 
 	Box2D CubeBox = { Cube - CubeSize * 0.5f, Cube + CubeSize * 0.5f };
 	Box2D PaddleBox = { Paddle - PaddleSize * 0.5f, Paddle + PaddleSize * 0.5f };
 
-
-	std::string WallSoundPath = "Assets/Sounds/HitWall.wav";
-	std::string PaddleSoundPath = "Assets/Sounds/HitPaddle.wav";
-
-
-	/* ------------------------------------------- NEWWWW ----------------------------------------------------------------------*/
 	{
-		if (Direction.x > 0)
+		/* Cube and Wall collision */
+		if (CubeDirection.x > 0)
 		{
-			float hitTime = (1 - Border - CubeBox.max.x) / Direction.x;
-			if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+			float TimeOfHit = (1 - Border - CubeBox.max.x) / CubeDirection.x;
+			if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 			{
-				allowedTimeStep = hitTime;
-				newCubeDirection = { -Direction.x, Direction.y };
-				didCollide = true;
-				HitBrickIndex = -1;
+				TimeAllowed = TimeOfHit;
+				ChangeDirection = { -CubeDirection.x, CubeDirection.y };
+				bCollisionDetected = true;
+				HitIndex = -1;
 				Mix_PlayChannel(-1, Mix_LoadWAV(WallSoundPath.c_str()), 0);
 			}
 		}
 
-		else if (Direction.x < 0)
+		else if (CubeDirection.x < 0)
 		{
-			float hitTime = (Border - CubeBox.min.x) / Direction.x;
-			if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+			float TimeOfHit = (Border - CubeBox.min.x) / CubeDirection.x;
+			if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 			{
-				allowedTimeStep = hitTime;
-				newCubeDirection = { -Direction.x, Direction.y };
-				didCollide = true;
-				HitBrickIndex = -1;
+				TimeAllowed = TimeOfHit;
+				ChangeDirection = { -CubeDirection.x, CubeDirection.y };
+				bCollisionDetected = true;
+				HitIndex = -1;
 				Mix_PlayChannel(-1, Mix_LoadWAV(WallSoundPath.c_str()), 0);
 			}
 		}
 
-		if (Direction.y < 0)
+		if (CubeDirection.y < 0)
 		{
-			float hitTime = (Border - CubeBox.min.y) / Direction.y;
-			if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+			float TimeOfHit = (Border - CubeBox.min.y) / CubeDirection.y;
+			if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 			{
-				allowedTimeStep = hitTime;
-				newCubeDirection = { Direction.x, -Direction.y };
-				didCollide = true;
-				HitBrickIndex = -1;
+				TimeAllowed = TimeOfHit;
+				ChangeDirection = { CubeDirection.x, -CubeDirection.y };
+				bCollisionDetected = true;
+				HitIndex = -1;
 				Mix_PlayChannel(-1, Mix_LoadWAV(WallSoundPath.c_str()), 0);
 			}
 		}
 
-		if (Direction.y > 0)
+		if (CubeDirection.y > 0)
 		{
-			float hitTime = (PaddleBox.min.y - CubeBox.max.y) / Direction.y;
+			float TimeOfHit = (PaddleBox.min.y - CubeBox.max.y) / CubeDirection.y;
 
-			if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+			if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 			{
-				float newCubeCenter = Cube.x + Direction.x * hitTime;
-				float newCubeMinX = CubeBox.min.x + Direction.x * hitTime;
-				float newCubeMaxX = CubeBox.max.x + Direction.x * hitTime;
+				float NewCube = Cube.x + CubeDirection.x * TimeOfHit;
+				float NewCubeMin = CubeBox.min.x + CubeDirection.x * TimeOfHit;
+				float NewCubeMax = CubeBox.max.x + CubeDirection.x * TimeOfHit;
 
-				if ((newCubeMaxX >= PaddleBox.min.x) && (PaddleBox.max.x >= newCubeMinX))
+				/* Cube and Paddle collision */
+				if ((NewCubeMax >= PaddleBox.min.x) && (PaddleBox.max.x >= NewCubeMin))
 				{
 					Mix_PlayChannel(-1, Mix_LoadWAV(PaddleSoundPath.c_str()), 0);
-					if (newCubeMinX < PaddleBox.min.x + PaddleCornerWidth)
+					if (NewCubeMin < PaddleBox.min.x + PaddleCornerWidth)
 					{
-						// newCubeDirection = normalize({ -2,-1 });
-						newCubeDirection = normalize({ -1,-1 });
+						ChangeDirection = normalize({ -1,-1 });
 					}
 
-					else if (newCubeMaxX > PaddleBox.max.x - PaddleCornerWidth)
+					else if (NewCubeMax > PaddleBox.max.x - PaddleCornerWidth)
 					{
-						// newCubeDirection = normalize({ 2 ,-1 });
-						newCubeDirection = normalize({ 1,-1 });
+						ChangeDirection = normalize({ 1,-1 });
 					}
 
-					else if (newCubeCenter <= Paddle.x)
+					else if (NewCube <= Paddle.x)
 					{
-						// newCubeDirection = normalize({ -1 ,-1 });
-						newCubeDirection = normalize({ 0,-1 });
+						ChangeDirection = normalize({ 0,-1 });
 					}
 
 					else
 					{
-						newCubeDirection = normalize({ 1,-1 });
+						ChangeDirection = normalize({ 1,-1 });
 					}
 
-					allowedTimeStep = hitTime;
-					didCollide = true;
-					HitBrickIndex = -1;
+					TimeAllowed = TimeOfHit;
+					bCollisionDetected = true;
+					HitIndex = -1;
 
 				}
 			}
 		}
 
-		// ------------------------------------------------------------ BRICKSSS ---------------------------------------------------------
-
+		
+		/* Cube and Bricks collision */
 		for (int i = 0; i < BricksInGame.size(); i++)
 		{
 			auto Brick = &BricksInGame[i];
 
-			if (Direction.x > 0)
+			if (CubeDirection.x > 0)
 			{
-				float hitTime = (Brick->brickBox.min.x - CubeBox.max.x) / Direction.x;
-				if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+				float TimeOfHit = (Brick->brickBox.min.x - CubeBox.max.x) / CubeDirection.x;
+				if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 				{
-					float newCubeMinY = CubeBox.min.y + Direction.y * hitTime;
-					float newCubeMaxY = CubeBox.max.y + Direction.y * hitTime;
+					float NewCubeMin = CubeBox.min.y + CubeDirection.y * TimeOfHit;
+					float NewCubeMax = CubeBox.max.y + CubeDirection.y * TimeOfHit;
 
-					if ((newCubeMaxY >= Brick->brickBox.min.y) && (Brick->brickBox.max.y >= newCubeMinY))
+					if ((NewCubeMax >= Brick->brickBox.min.y) && (Brick->brickBox.max.y >= NewCubeMin))
 					{
-						allowedTimeStep = hitTime;
-						newCubeDirection = { -Direction.x, Direction.y };
-						didCollide = true;
-						HitBrickIndex = i;
+						TimeAllowed = TimeOfHit;
+						ChangeDirection = { -CubeDirection.x, CubeDirection.y };
+						bCollisionDetected = true;
+						HitIndex = i;
 					}
 				}
 			}
 
-			else if (Direction.x < 0)
+			else if (CubeDirection.x < 0)
 			{
-				float hitTime = (Brick->brickBox.max.x - CubeBox.min.x) / Direction.x;
-				if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+				float TimeOfHit = (Brick->brickBox.max.x - CubeBox.min.x) / CubeDirection.x;
+				if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 				{
-					float newCubeMinY = CubeBox.min.y + Direction.y * hitTime;
-					float newCubeMaxY = CubeBox.max.y + Direction.y * hitTime;
+					float NewCubeMin = CubeBox.min.y + CubeDirection.y * TimeOfHit;
+					float NewCubeMax = CubeBox.max.y + CubeDirection.y * TimeOfHit;
 
-					if ((newCubeMaxY >= Brick->brickBox.min.y) && (Brick->brickBox.max.y >= newCubeMinY))
+					if ((NewCubeMax >= Brick->brickBox.min.y) && (Brick->brickBox.max.y >= NewCubeMin))
 					{
-						allowedTimeStep = hitTime;
-						newCubeDirection = { -Direction.x, Direction.y };
-						didCollide = true;
-						HitBrickIndex = i;
+						TimeAllowed = TimeOfHit;
+						ChangeDirection = { -CubeDirection.x, CubeDirection.y };
+						bCollisionDetected = true;
+						HitIndex = i;
 					}
 				}
 			}
 
-			if (Direction.y > 0)
+			if (CubeDirection.y > 0)
 			{
-				float hitTime = (Brick->brickBox.min.y - CubeBox.max.y) / Direction.y;
+				float TimeOfHit = (Brick->brickBox.min.y - CubeBox.max.y) / CubeDirection.y;
 
-				if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+				if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 				{
-					float newCubeMinX = CubeBox.min.x + Direction.x * hitTime;
-					float newCubeMaxX = CubeBox.max.x + Direction.x * hitTime;
+					float NewCubeMin = CubeBox.min.x + CubeDirection.x * TimeOfHit;
+					float NewCubeMax = CubeBox.max.x + CubeDirection.x * TimeOfHit;
 
-					if ((newCubeMaxX >= Brick->brickBox.min.x) && (Brick->brickBox.max.x >= newCubeMinX))
+					if ((NewCubeMax >= Brick->brickBox.min.x) && (Brick->brickBox.max.x >= NewCubeMin))
 					{
-						allowedTimeStep = hitTime;
-						newCubeDirection = { Direction.x, -Direction.y };
-						didCollide = true;
-						HitBrickIndex = i;
+						TimeAllowed = TimeOfHit;
+						ChangeDirection = { CubeDirection.x, -CubeDirection.y };
+						bCollisionDetected = true;
+						HitIndex = i;
 					}
 				}
 
 			}
 
-			else if (Direction.y < 0)
+			else if (CubeDirection.y < 0)
 			{
-				float hitTime = (Brick->brickBox.max.y - CubeBox.min.y) / Direction.y;
-				if ((hitTime >= 0) && (hitTime < allowedTimeStep))
+				float TimeOfHit = (Brick->brickBox.max.y - CubeBox.min.y) / CubeDirection.y;
+				if ((TimeOfHit >= 0) && (TimeOfHit < TimeAllowed))
 				{
-					float newCubeMinX = CubeBox.min.x + Direction.x * hitTime;
-					float newCubeMaxX = CubeBox.max.x + Direction.x * hitTime;
+					float NewCubeMin = CubeBox.min.x + CubeDirection.x * TimeOfHit;
+					float NewCubeMax = CubeBox.max.x + CubeDirection.x * TimeOfHit;
 
-					if ((newCubeMaxX >= Brick->brickBox.min.x) && (Brick->brickBox.max.x >= newCubeMinX))
+					if ((NewCubeMax >= Brick->brickBox.min.x) && (Brick->brickBox.max.x >= NewCubeMin))
 					{
-						allowedTimeStep = hitTime;
-						newCubeDirection = { Direction.x, -Direction.y };
-						didCollide = true;
-						HitBrickIndex = i;
+						TimeAllowed = TimeOfHit;
+						ChangeDirection = { CubeDirection.x, -CubeDirection.y };
+						bCollisionDetected = true;
+						HitIndex = i;
 					}
 				}
 			}
 		}
 
 		// Slow down cube speed *0.6f
-		Cube = Cube + Direction * allowedTimeStep * 0.6f;
+		Cube = Cube + CubeDirection * TimeAllowed * 0.6f;
 
-		if (didCollide)
+		if (bCollisionDetected)
 		{
-			Direction = newCubeDirection;
-			CubehitAnimationTime = 1.0f;
+			CubeDirection = ChangeDirection;
 
-			if (HitBrickIndex != -1)
+			if (HitIndex != -1)
 			{
-				auto Brick = &BricksInGame[HitBrickIndex];
+				auto Brick = &BricksInGame[HitIndex];
 
 				if (Brick->HitPoints > 0)
 				{
@@ -441,14 +438,13 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 
 				if (Brick->HitPoints == 0)
 				{
+					Mix_PlayChannel(-1, Mix_LoadWAV((Brick->BreakSound).c_str()), 0);
 					CurrentScore += Brick->BreakScore;
 					Score += Brick->BreakScore;
-
-
-
-					BricksInGame[HitBrickIndex] = BricksInGame.back();
+					BricksInGame[HitIndex] = BricksInGame.back();
 					BricksInGame.pop_back();
 
+					
 					std::cout << "HIT!" << std::endl;
 					std::cout << "CurrentScore: " << CurrentScore << std::endl;
 					std::cout << "MaxLevelScore: " << MaxLevelScore << std::endl;
@@ -466,7 +462,6 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 					else if (CurrentScore == MaxLevelScore && LevelCounter == Levels.size() - 1)
 					{
 						bGameOver = true;
-						//bShouldPause = true;
 					}
 
 				}
@@ -475,7 +470,7 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 
 		if (CubeBox.min.y >= WorldSize.y)
 		{
-			if (lifeCount == 0)
+			if (LifeCount == 0)
 			{
 				LevelCounter = 0;
 				bGameOver = true;
@@ -483,11 +478,12 @@ void GameMode::Update(float MouseX, float MouseY, float Time)
 				ResetGame();
 			}
 
-			else if (lifeCount > 0)
+			else if (LifeCount > 0)
 			{
 				Score = Score - CurrentScore;
+				MaxScore = Score;
 				CurrentScore = 0;
-				lifeCount--;
+				LifeCount--;
 				bShouldPause = true;
 				ResetLevel();
 			}
@@ -504,19 +500,18 @@ void GameMode::Run()
 
 	bShouldPause = true;
 	bStartGame = true;
-	bWinGame = false;
 	ResetGame();
+
 	while (!bQuit)
 	{
-
 		SDL_Event Event;
 
 		if (bGameOver) {
-			std::cout << "Drawing - end game" << std::endl;
-			DrawGameOver();
+			std::cout << "Game END!" << std::endl;
+			RenderGameOver();
 		}
 			
-
+		/* Handle events */
 		while (SDL_PollEvent(&Event) || bGameOver)
 		{
 			if (Event.type == SDL_QUIT)
@@ -538,9 +533,9 @@ void GameMode::Run()
 				{
 					if (Event.key.keysym.sym == SDLK_SPACE)
 					{
-						std::cout << "Space - release ball" << std::endl;
+						std::cout << "SPACE pressed - Release cube!" << std::endl;
 						bShouldPause = false;
-						if (bStartGame) Direction = normalize({ 0, -1 });
+						if (bStartGame) CubeDirection = normalize({ 0, -1 });
 						break;
 					}
 				}
@@ -549,7 +544,7 @@ void GameMode::Run()
 			if (Event.type == SDL_KEYDOWN && Event.key.keysym.sym == SDLK_RETURN)
 			{
 				if (bGameOver) {
-					std::cout << "Enter - end game" << std::endl;
+					std::cout << "ENTER pressed - End game!" << std::endl;
 					Seconds = 0;
 					bGameOver = false;
 					ResetGame();
@@ -560,9 +555,10 @@ void GameMode::Run()
 
 		unsigned int time = SDL_GetTicks();
 		TimeForTime = SDL_GetTicks();
-		timeStep = (float)(time - BeforeTime) / 1000.0f;
+		float timeStep = (float)(time - BeforeTime) / 1000.0f;
 		Seconds = (TimeForTime - BeforeTimeForTime) / 1000.0f;
 		BeforeTime = time;
+
 		if (!bGameOver) Render();
 		if (!bShouldPause && !bGameOver) Update(MouseX, MouseY, timeStep);
 
@@ -577,7 +573,7 @@ void GameMode::Run()
 	SDL_Quit();
 }
 
-void GameMode::DrawGameInfo(float x, float y, std::string Text, int value, bool GameOver)
+void GameMode::RenderGameInfo(float x, float y, std::string Text, int value, bool GameOver)
 {
 	if (GameOver)
 	{
@@ -585,7 +581,7 @@ void GameMode::DrawGameInfo(float x, float y, std::string Text, int value, bool 
 		SDL_Surface* GameOverSurface = TTF_RenderText_Solid(FontArial_24, Text.c_str(), color);
 		SDL_Texture* GameOverTexture = SDL_CreateTextureFromSurface(GameRenderer, GameOverSurface);
 		SDL_Rect GameOverRect = { (int)x, (int)y, 0,0 };
-		SDL_Rect dst = { (WindowWidth - GameOverSurface->w) / 2, (WindowHeight - Border*WindowWidth + GameOverSurface->h) / 2, 0, 0 };
+		SDL_Rect dst = { int((WindowWidth - GameOverSurface->w) / 2), int((WindowHeight - Border*WindowWidth + GameOverSurface->h) / 2), 0, 0 };
 		SDL_QueryTexture(GameOverTexture, NULL, NULL, &dst.w, &dst.h);
 		SDL_RenderCopy(GameRenderer, GameOverTexture, NULL, &dst);
 		SDL_FreeSurface(GameOverSurface);
@@ -609,14 +605,14 @@ void GameMode::DrawGameInfo(float x, float y, std::string Text, int value, bool 
 	}
 }
 
-void GameMode::DrawRectFrame(float PositionX, float PositionY, float Width, float Height, SDL_Color Color)
+void GameMode::RenderRectFrame(float x, float y, float w, float h, SDL_Color Color)
 {
 	SDL_SetRenderDrawColor(GameRenderer, Color.r, Color.g, Color.b, Color.a);
-	SDL_Rect ColorRect = { (int)PositionX, (int)PositionY, (int)Width, (int)Height };
+	SDL_Rect ColorRect = { (int)x, (int)y, (int)w, (int)h };
 	SDL_RenderDrawRect(GameRenderer, &ColorRect);
 }
 
-void GameMode::DrawTexture(float x, float y, float w, float h, std::string Texture)
+void GameMode::RenderTexture(float x, float y, float w, float h, std::string Texture)
 {
 	DirectX::TexMetadata MetaData;
 	DirectX::ScratchImage ScratchImage;
@@ -626,9 +622,9 @@ void GameMode::DrawTexture(float x, float y, float w, float h, std::string Textu
 	if (DirectX::LoadFromDDSFile(textures.c_str(), DirectX::DDS_FLAGS_NONE, &MetaData, ScratchImage) != S_OK) {}
 
 	DirectX::ScratchImage ResizedImage;
-	if (DirectX::Resize(ScratchImage.GetImages(), ScratchImage.GetImageCount(), ScratchImage.GetMetadata(), w, h, DirectX::TEX_FILTER_DEFAULT, ResizedImage) != S_OK) {}
+	if (DirectX::Resize(ScratchImage.GetImages(), ScratchImage.GetImageCount(), ScratchImage.GetMetadata(), size_t(w), size_t(h), DirectX::TEX_FILTER_DEFAULT, ResizedImage) != S_OK) {}
 
-	SDL_Surface* sdlSurface = SDL_CreateRGBSurfaceFrom(ResizedImage.GetPixels(), ResizedImage.GetMetadata().width, ResizedImage.GetMetadata().height, 32, ResizedImage.GetMetadata().width * 4, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
+	SDL_Surface* sdlSurface = SDL_CreateRGBSurfaceFrom(ResizedImage.GetPixels(), (ResizedImage.GetMetadata().width), (ResizedImage.GetMetadata().height), (32), (ResizedImage.GetMetadata().width * 4), 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 	SDL_Texture* sdlTexture = SDL_CreateTextureFromSurface(GameRenderer, sdlSurface);
 
 	SDL_Rect dest = { (int)x, (int)y, (int)w, (int)h };
@@ -641,11 +637,10 @@ void GameMode::DrawTexture(float x, float y, float w, float h, std::string Textu
 
 void GameMode::RenderMinAndSizeTexture(Vector2D worldMin, Vector2D worldSize, std::string Texture, bool Frame)
 {
-	float widthOverHeight = WorldSize.x / WorldSize.y;
-	Vector2D Min = { worldMin.x * WindowWidth, worldMin.y * WindowHeight * widthOverHeight };
-	Vector2D Size = { worldSize.x * WindowWidth, worldSize.y * WindowHeight * widthOverHeight };
-	if (!Frame) DrawTexture(Min.x, Min.y, Size.x, Size.y, Texture);
-	else DrawRectFrame(Min.x, Min.y, Size.x, Size.y, { 220,220,220,255 });
+	Vector2D Min = { worldMin.x * WindowWidth, worldMin.y * WindowHeight * AspectRatio };
+	Vector2D Size = { worldSize.x * WindowWidth, worldSize.y * WindowHeight * AspectRatio };
+	if (!Frame) RenderTexture(Min.x, Min.y, Size.x, Size.y, Texture);
+	else RenderRectFrame(Min.x, Min.y, Size.x, Size.y, { 220,220,220,255 });
 
 }
 
@@ -654,7 +649,7 @@ void GameMode::RenderMinAndMaxTexture(Vector2D worldMin, Vector2D worldMax, std:
 	RenderMinAndSizeTexture(worldMin, worldMax - worldMin, Texture, Frame);
 }
 
-void GameMode::DrawBorder()
+void GameMode::RenderBorder()
 {
 	std::string Path = "Assets/Textures/Border/Border.dds";
 	RenderMinAndMaxTexture({ 0,0 }, { Border, WorldSize.y }, Path, false);
@@ -662,31 +657,24 @@ void GameMode::DrawBorder()
 	RenderMinAndMaxTexture({ 0,0 }, { 1, Border }, Path, false);
 }
 
-void GameMode::DrawGameOver()
+void GameMode::RenderGameOver()
 {
-	DrawBorder();
+	RenderBorder();
 
 	if (Score == MaxScore)
 	{
-		std::cout << "win" << std::endl;
-		DrawGameInfo(WindowWidth / 2, WindowHeight / 2, "You WIN! Press Enter to start again!", 0, true);
+		RenderGameInfo(WindowWidth / 2.f, WindowHeight / 2.f, "You WIN! Press Enter to start again!", 0, true);
 	}
-	else {
-		std::cout << "loose" << std::endl;
-		DrawGameInfo(WindowWidth / 2, WindowHeight / 2, "GameOver! Press Enter to start again!", 0, true);
+	else
+	{
+		RenderGameInfo(WindowWidth / 2.f, WindowHeight / 2.f, "GameOver! Press Enter to start again!", 0, true);
 	}
-}
-
-void GameMode::RenderWinGame()
-{
-	DrawBorder();
-	DrawGameInfo(WindowWidth / 2, WindowHeight / 2, "Congratulations! You Win!", 0, false);
 }
 
 void GameMode::Render()
 {
 	/* Background */
-	DrawTexture(Border * WindowWidth, Border * WindowHeight, WindowWidth - 2 * Border * WindowWidth, WindowHeight - Border * WindowHeight, BackgroundPath);
+	RenderTexture(Border * WindowWidth, Border * WindowHeight - 10, WindowWidth - 2 * Border * WindowWidth, WindowHeight - Border * WindowHeight + 10, BackgroundPath);
 
 	/* Left Corner */
 	RenderMinAndSizeTexture(Paddle - PaddleSize * 0.5f, Vector2D{ PaddleCornerWidth, PaddleSize.y }, "Assets/Textures/Paddle/Paddle.dds", false);
@@ -708,14 +696,14 @@ void GameMode::Render()
 		RenderMinAndMaxTexture(Brick->brickBox.min, Brick->brickBox.max, Brick->Texture, true);
 	}
 
-	// draw border 
-	DrawBorder();
+	// Borders  
+	RenderBorder();
 
-	/* Draw Game Info */
-	DrawGameInfo(Border * WindowWidth, 4, "Level: ", LevelCounter + 1, false);
-	DrawGameInfo(Border * WindowWidth + WindowWidth * 0.175, 4, "Lives: ", lifeCount, false);
-	DrawGameInfo(Border * WindowWidth + WindowWidth * 0.3, 4, "Score: ", Score, false);
-	DrawGameInfo(Border * WindowWidth + WindowWidth * 0.425, 4, "Time: ", Seconds, false);
+	/* GameInfo */
+	RenderGameInfo(Border * WindowWidth, 4, "Level: ", LevelCounter + 1, false);
+	RenderGameInfo(Border * WindowWidth + WindowWidth * 0.175f, 4, "Lives: ", LifeCount, false);
+	RenderGameInfo(Border * WindowWidth + WindowWidth * 0.3f, 4, "Score: ", Score, false);
+	RenderGameInfo(Border * WindowWidth + WindowWidth * 0.425f, 4, "Time: ", int(Seconds), false);
 
 }
 
@@ -790,5 +778,4 @@ void GameMode::UploadLevel(const char* Level)
 			BricksLayout.push_back(SingleRow);
 		}
 	}
-
 }

@@ -19,12 +19,12 @@ struct Box2D
 };
 
 struct BrickType {
-    std::string Id;
-    std::string Texture;
-    int HitPoints;
-    std::string HitSound;
-    std::string BreakSound;
-    int BreakScore;
+    int HitPoints = 0;
+    int BreakScore = 0;
+    std::string Id = "";
+    std::string Texture = "";
+    std::string HitSound = "";
+    std::string BreakSound = "";
 
     struct Box2D brickBox;
 };
@@ -42,7 +42,11 @@ private:
     struct SDL_Window* GameWindow;
     struct SDL_Renderer* GameRenderer;
 
+    TTF_Font* FontArial_16;
+    TTF_Font* FontArial_24;
+
     /* Attributes for placing Level elements */
+    std::vector<const char*> Levels;
     int RowCount;
     int ColumnCount;
     int RowSpacing;
@@ -52,123 +56,89 @@ private:
     std::vector<std::vector<char>> BricksLayout;
     std::vector<BrickType> BricksInGame;
 
-    wchar_t* wstr;
-    /**/
+    /* Updates the mouse position */
     float MouseX;
     float MouseY;
+
+    /* Updates the time */
     float Time;
-    bool bQuit;
-    bool pressed;
-    bool bEnterPressed;
     int startTime;
-    int ElapsedTime;
     float Seconds;
-    float timeStep;
-
-    float CubehitAnimationTime;
-
-    /* Paddle */
-    Vector2D Paddle;
-    Vector2D Cube;
-    Vector2D Direction;
-    Vector2D Brick;
-
     unsigned int BeforeTime;
     unsigned int BeforeTimeForTime;
     unsigned int TimeForTime;
 
+    /* Monitors the state of the main loop */
+    bool bQuit;
+   
+    /* Center of the Game objects */
+    Vector2D Paddle;
+    Vector2D Cube;
+    Vector2D Brick;
+    Vector2D CubeDirection;
+    
+    /* Event tracking flags */
     bool bLostLife;
     bool bStartGame;
-
-
-    bool bClickWaiting;
-    int lifeCount;
-    int counter;
-    int Score;
     bool bGameOver;
-    int counterImpenetrable;
-    int MaxScore;
-    std::vector<const char*> Levels;
-    int LevelCounter;
-    bool bPaused;
-
     bool bShouldPause;
 
-
+    int LifeCount;
+    int LevelCounter;
+    int Score;
     int CurrentScore;
+    int MaxScore;
     int MaxLevelScore;
-    bool bWinGame;
-    TTF_Font* FontArial_16;
-    TTF_Font* FontArial_24;
-  
-
+   
 protected:
     /* Sets all Bricks to the values specified in the Level and adds the Bricks to a BricksInGame vector */
     void SetBricks();
-    /**/
-    void DrawRectFrame(float PositionX, float PositionY, float Width, float Height, struct SDL_Color Color);
-    /**/
-    void DrawTexture(float x, float y, float w, float h, std::string Texture);
-    /**/
+
+    /* Draws a frame for each Brick */
+    void RenderRectFrame(float x, float y, float w, float h, struct SDL_Color Color);
+
+    /* Draws texture for all Game objects */
+    void RenderTexture(float x, float y, float w, float h, std::string Texture);
+
+    /* Additional method for drawing objects from the initial position to the size of the object */
     void RenderMinAndSizeTexture(Vector2D worldMin, Vector2D worldSize, std::string Texture, bool Frame);
-    /**/
+
+    /* Additional method for drawing objects from the initial position to the specified maximum position */
     void RenderMinAndMaxTexture(Vector2D worldMin, Vector2D worldMax, std::string Texture, bool Frame);
-    /**/
-    void DrawBorder();
-    /**/
-    void DrawGameInfo(float x, float y, std::string Text, int value, bool GameOver);
-    /**/
-    void DrawGameOver();
-    /**/
-    void RenderWinGame();
 
-public:
-    /**/
-    GameMode(int WindowWidth, int WindowHeight);
+    /* Draws left, right and top border */
+    void RenderBorder();
 
-    /**/
-    void Init();
+    /* Draws information about the Game such as the level the player is currently at, the current score etc. */
+    void RenderGameInfo(float x, float y, std::string Text, int value, bool GameOver);
 
-    /**/
-    void Render() override;
+    /* Draws information about whether the player lost or won */
+    void RenderGameOver();
 
-    /**/
-    void ResetGame();
-
-    /**/
-    void ResetLevel();
-
-    /**/
-    void StartGame();
-
-    /**/
+    /* Uploads levels from XML documents */
     void UploadLevel(const char* Level);
 
-    /**/
-    void NextLevel();
+    // bool Overlaps(Box2D paddle, Box2D cube);
 
-    void GameOver();
+public:
+    GameMode(int WindowWidth, int WindowHeight);
 
+    /* Initializes SDL, Window, Renderer etc. */
+    void Init();
 
-    /**/
-    void StartMovingCube();
+    void ResetGame() override;
 
+    void NextLevel() override;
 
+    void ResetLevel() override;
+
+    /* Updates the Game state */
     void Update(float MouseX, float MouseY, float Time) override;
 
+    /* The main method for drawing all objects in the game */
+    void Render() override;
+
     void Run() override;
-
-    bool Overlaps(Box2D paddle, Box2D cube);
-
-    void nextLevel();
-
-
-
- 
-
-    /* Getters and Setters */
-    inline int GetWindowWidth() const { return WindowWidth; }
-    inline int GetWindowHeight() const { return WindowHeight; }
 };
 
 
