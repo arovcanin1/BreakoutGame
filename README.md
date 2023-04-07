@@ -12,7 +12,8 @@ Here's the file structure inside the FINAL.zip file:
 
 To use the FINAL.zip, simply download it and extract it to your desired location. You will get two folders named Hard and Easy - created for testing.
 To play a game  enter in any of these two folders choose _Difficulty_ Everything or _Difficulty_ EXE
-and double click on EXE. 
-the cube starts moving by pressing the space key.
+and double click on EXE.
+
+The cube starts moving by pressing the space key.
 
 <img src="https://user-images.githubusercontent.com/73299629/230613119-f2dcb692-938f-4f9e-83a7-217cec45bd5a.jpg" alt= “BreakoutGame” width="600" height="400">
