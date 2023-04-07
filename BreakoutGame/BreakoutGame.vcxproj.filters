@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Assets">
+      <UniqueIdentifier>{9eac3803-1dce-4e2f-85c0-cb8cebd232f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures">
+      <UniqueIdentifier>{4fb6f23f-5421-4823-915d-a48cc34d67f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Sounds">
+      <UniqueIdentifier>{000331bb-be26-4510-8c6b-e84e5d597356}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures\Boards">
+      <UniqueIdentifier>{c7510fe9-2775-4aa1-8c72-05b3f33a46a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures\Bricks">
+      <UniqueIdentifier>{05ef38ea-774a-4167-a9f5-375df8c75ea4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures\Paddle">
+      <UniqueIdentifier>{d285a773-a269-4b56-879b-283a606cb3be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures\Cube">
+      <UniqueIdentifier>{7fe7765b-1c98-45f7-8d88-2bd76246ad80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Textures\Border">
+      <UniqueIdentifier>{98dccf01-0122-45c7-97a5-669f2a6d85df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Fonts">
+      <UniqueIdentifier>{570cfe0a-2b8a-47eb-b12f-2d08aa42f1df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Assets\Levels">
+      <UniqueIdentifier>{18d1c644-304d-4570-b588-d7199103c719}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameModeBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameMode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GameModeBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="SDL2.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="SDL2_image.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="SDL2_mixer.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="SDL2_ttf.dll">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="tinyxml2.dll">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BreakoutGame.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Textures\Boards\Board_01.dds">
+      <Filter>Source Files\Assets\Textures\Boards</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Border\Border.dds">
+      <Filter>Source Files\Assets\Textures\Border</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Cube\Cube.dds">
+      <Filter>Source Files\Assets\Textures\Cube</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Bricks\Hard.dds">
+      <Filter>Source Files\Assets\Textures\Bricks</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Bricks\Impenetrable.dds">
+      <Filter>Source Files\Assets\Textures\Bricks</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Bricks\Medium.dds">
+      <Filter>Source Files\Assets\Textures\Bricks</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Bricks\Soft.dds">
+      <Filter>Source Files\Assets\Textures\Bricks</Filter>
+    </Image>
+    <Image Include="Assets\Textures\Paddle\Paddle.dds">
+      <Filter>Source Files\Assets\Textures\Paddle</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="Assets\Fonts\arial.ttf">
+      <Filter>Source Files\Assets\Fonts</Filter>
+    </Font>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="Assets\Levels\Level1.xml">
+      <Filter>Source Files\Assets\Levels</Filter>
+    </Xml>
+    <Xml Include="Assets\Levels\Level2.xml">
+      <Filter>Source Files\Assets\Levels</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="Assets\Sounds\HitPaddle.wav">
+      <Filter>Source Files\Assets\Sounds</Filter>
+    </Media>
+    <Media Include="Assets\Sounds\HitWall.wav">
+      <Filter>Source Files\Assets\Sounds</Filter>
+    </Media>
+    <Media Include="Assets\Sounds\Hit_01.wav">
+      <Filter>Source Files\Assets\Sounds</Filter>
+    </Media>
+  </ItemGroup>
+</Project>
