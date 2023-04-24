@@ -68,21 +68,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="SDL2.dll">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="SDL2_image.dll">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="SDL2_mixer.dll">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="SDL2_ttf.dll">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="tinyxml2.dll">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BreakoutGame.rc">

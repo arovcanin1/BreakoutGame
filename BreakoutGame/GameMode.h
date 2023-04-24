@@ -118,8 +118,6 @@ protected:
     /* Uploads levels from XML documents */
     void UploadLevel(const char* Level);
 
-    // bool Overlaps(Box2D paddle, Box2D cube);
-
 public:
     GameMode(int WindowWidth, int WindowHeight);
 

@@ -160,11 +160,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="SDL2.dll" />
-    <None Include="SDL2_image.dll" />
-    <None Include="SDL2_mixer.dll" />
-    <None Include="SDL2_ttf.dll" />
-    <None Include="tinyxml2.dll" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BreakoutGame.rc" />
